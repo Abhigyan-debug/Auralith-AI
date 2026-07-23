@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Auralith AI — Agent Architecture</title>
+<style>
+  @page { size: A4; margin: 26mm 20mm 22mm 20mm; }
+
+  :root {
+    --ink: #1c1815;
+    --ink-soft: #4a4038;
+    --rule: #e4ddd2;
+    --paper-tint: #faf8f4;
+    --gold-500: #f59e0b;
+    --gold-600: #d97706;
+    --gold-700: #b45309;
+    --code-bg: #211d18;
+    --code-fg: #ece6da;
+    --code-accent: #f0b64c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: "Segoe UI", -apple-system, Helvetica, Arial, sans-serif;
+    font-size: 10.6pt;
+    line-height: 1.62;
+  }
+
+  /* ---------- Title page ---------- */
+  .titlepage {
+    min-height: 240mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    page-break-after: always;
+  }
+
+  .titlepage .kicker {
+    font-family: Consolas, "Cascadia Mono", monospace;
+    font-size: 10.5pt;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold-600);
+    margin-bottom: 22px;
+  }
+
+  .titlepage h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 34pt;
+    line-height: 1.15;
+    margin: 0 0 14px;
+    max-width: 11.5cm;
+  }
+
+  .titlepage .subtitle {
+    font-size: 13pt;
+    color: var(--ink-soft);
+    max-width: 11cm;
+    margin-bottom: 40px;
+  }
+
+  .titlepage .meta {
+    font-size: 9.5pt;
+    color: var(--ink-soft);
+    border-top: 1px solid var(--rule);
+    padding-top: 14px;
+    max-width: 11.5cm;
+  }
+
+  .titlepage .meta div + div { margin-top: 4px; }
+  .titlepage .meta b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- TOC ---------- */
+  .toc { page-break-after: always; }
+  .toc h2 { margin-top: 0; }
+  .toc ol {
+    list-style: none;
+    padding: 0;
+    margin: 24px 0 0;
+    counter-reset: toc;
+  }
+  .toc li {
+    counter-increment: toc;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px dotted var(--rule);
+    font-size: 10.5pt;
+  }
+  .toc li::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: Consolas, monospace;
+    color: var(--gold-600);
+    font-size: 9.5pt;
+    flex-shrink: 0;
+  }
+  .toc li span.name { flex: 1; }
+  .toc li span.sub { color: var(--ink-soft); font-size: 9.5pt; }
+
+  /* ---------- Body sections ---------- */
+  section { page-break-before: always; }
+  section:first-of-type { page-break-before: auto; }
+
+  h1.sec {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 19pt;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  h1.sec .num {
+    font-family: Consolas, monospace;
+    font-size: 12pt;
+    color: var(--gold-600);
+    font-weight: 700;
+  }
+  .sec-rule {
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold-500), transparent);
+    margin: 10px 0 20px;
+  }
+
+  h2.sub {
+    font-size: 12.5pt;
+    font-weight: 700;
+    margin: 26px 0 8px;
+    color: var(--ink);
+  }
+
+  p { margin: 0 0 11px; }
+  ul, ol { margin: 0 0 11px; padding-left: 22px; }
+  li { margin-bottom: 4px; }
+
+  code.inline {
+    font-family: Consolas, "Cascadia Mono", monospace;
+    font-size: 9.6pt;
+    background: var(--paper-tint);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: #7a4a10;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-family: Consolas, "Cascadia Mono", monospace;
+    font-size: 8.6pt;
+    line-height: 1.55;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    break-inside: avoid;
+    margin: 10px 0 16px;
+    border-left: 3px solid var(--gold-500);
+  }
+
+  .code-label {
+    font-family: Consolas, monospace;
+    font-size: 8.2pt;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    margin: 14px 0 -8px;
+    display: block;
+  }
+
+  .callout {
+    background: var(--paper-tint);
+    border-left: 3px solid var(--gold-600);
+    padding: 10px 14px;
+    margin: 14px 0 18px;
+    font-size: 9.8pt;
+    break-inside: avoid;
+  }
+  .callout .label {
+    font-weight: 700;
+    color: var(--gold-700);
+    font-size: 8.8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 18px;
+    font-size: 9.6pt;
+    break-inside: avoid;
+  }
+  th, td {
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th { color: var(--gold-700); font-size: 8.8pt; text-transform: uppercase; letter-spacing: 0.04em; }
+  td code.inline { white-space: nowrap; }
+
+  .flow {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 16px 0 20px;
+    font-size: 9pt;
+    break-inside: avoid;
+  }
+  .flow .step {
+    flex: 1;
+    background: var(--paper-tint);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 10px 10px;
+    text-align: center;
+  }
+  .flow .step b { display: block; font-size: 9.4pt; margin-bottom: 3px; }
+  .flow .step span { color: var(--ink-soft); font-size: 8.3pt; }
+  .flow .arrow { display: flex; align-items: center; padding: 0 6px; color: var(--gold-600); font-size: 13pt; }
+
+  footer.pagefoot {
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="titlepage">
+  <div class="kicker">Auralith AI — Technical Documentation</div>
+  <h1>How the Agent System Is Built</h1>
+  <div class="subtitle">
+    Architecture, routing logic, prompt design, and structured actions behind the
+    Supabase Edge Function that powers every agent in Auralith AI — with the actual
+    source, end to end.
+  </div>
+  <div class="meta">
+    <div><b>Runtime</b> — Supabase Edge Function (Deno), fronted by a React/TypeScript client</div>
+    <div><b>Model</b> — Groq API, <code class="inline" style="background:transparent;border:0;color:inherit;padding:0">openai/gpt-oss-120b</code></div>
+    <div><b>Storage</b> — Supabase Postgres with row-level security</div>
+    <div><b>Scope</b> — <code class="inline" style="background:transparent;border:0;color:inherit;padding:0">supabase/functions/ai-agent/index.ts</code> and its client integration</div>
+  </div>
+</div>
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><span class="name">Architecture Overview</span><span class="sub">request lifecycle, end to end</span></li>
+    <li><span class="name">Data Model</span><span class="sub">tables and row-level security</span></li>
+    <li><span class="name">Authenticating Every Request</span><span class="sub">why <code class="inline">--no-verify-jwt</code> plus manual auth</span></li>
+    <li><span class="name">Intent Detection</span><span class="sub">auto-routing a message to an agent</span></li>
+    <li><span class="name">Per-Agent System Prompts</span><span class="sub">one prompt template per specialist</span></li>
+    <li><span class="name">Calling the Model</span><span class="sub">the Groq request/response contract</span></li>
+    <li><span class="name">DSA Topic Detection</span><span class="sub">and the bug that shaped it</span></li>
+    <li><span class="name">Structured Action: Interview Grading</span><span class="sub">turning a transcript into a score</span></li>
+    <li><span class="name">Structured Action: Roadmap Generation</span><span class="sub">turning a conversation into a plan</span></li>
+    <li><span class="name">Client Integration</span><span class="sub">React state machine around one fetch call</span></li>
+    <li><span class="name">Security Notes</span><span class="sub">what's actually enforced, and where</span></li>
+  </ol>
+</div>
+
+<!-- 1 ================================================================ -->
+<section>
+<h1 class="sec"><span class="num">01</span> Architecture Overview</h1>
+<div class="sec-rule"></div>
+
+<p>
+Every agent in Auralith AI — Learning, DSA, Review, Debug, Interview, Roadmap, Progress,
+and General — is served by a <b>single</b> Supabase Edge Function,
+<code class="inline">ai-agent</code>. There is no per-agent backend; the function receives
+a message plus which agent (or none) the client thinks it should use, resolves that into
+a system prompt, and forwards the conversation to Groq.
+</p>
+
+<div class="flow">
+  <div class="step"><b>React client</b><span>ChatInterface.tsx sends message + history</span></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>Edge Function</b><span>auth check → intent routing → prompt select</span></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>Groq API</b><span>openai/gpt-oss-120b generates the reply</span></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>Postgres</b><span>message + progress/interview/roadmap saved</span></div>
+</div>
+
+<p>
+Two more request shapes ride the same endpoint without a separate route: <code class="inline">action:
+"end_interview"</code> and <code class="inline">action: "generate_roadmap"</code>. Both skip the
+conversational system prompts entirely and instead ask the model to return strict JSON, which
+the function parses and the client persists as structured rows rather than chat text.
+</p>
+
+<table>
+  <tr><th>Request shape</th><th>What it triggers</th><th>Returns</th></tr>
+  <tr><td><code class="inline">{ message, agent_type, history }</code></td><td>Normal chat turn</td><td><code class="inline">{ content, agent_type, metadata }</code></td></tr>
+  <tr><td><code class="inline">{ action: "end_interview", history }</code></td><td>Grade the whole transcript</td><td><code class="inline">{ result: InterviewGrade }</code></td></tr>
+  <tr><td><code class="inline">{ action: "generate_roadmap", history }</code></td><td>Extract a structured plan</td><td><code class="inline">{ result: RoadmapContent }</code></td></tr>
+</table>
+</section>
+
+<!-- 2 ================================================================ -->
+<section>
+<h1 class="sec"><span class="num">02</span> Data Model</h1>
+<div class="sec-rule"></div>
+
+<p>
+Everything the agents read or write lives in seven tables, all with row-level security
+scoped to <code class="inline">auth.uid()</code> so a user can only ever see their own rows —
+enforced at the database layer, independent of anything the client or edge function does.
+</p>
+
+<table>
+  <tr><th>Table</th><th>Purpose</th></tr>
+  <tr><td><code class="inline">profiles</code></td><td>Skill level, goals, preferred languages, GitHub/LeetCode handles</td></tr>
+  <tr><td><code class="inline">chats</code></td><td>One row per conversation, tagged with its agent type</td></tr>
+  <tr><td><code class="inline">messages</code></td><td>Every user/assistant turn, with per-message <code class="inline">metadata</code> jsonb</td></tr>
+  <tr><td><code class="inline">progress_reports</code></td><td>Score + problems_solved per DSA topic, seeded to 0 on signup</td></tr>
+  <tr><td><code class="inline">interview_results</code></td><td>Graded mock interviews: type, score, feedback, topics_covered</td></tr>
+  <tr><td><code class="inline">roadmaps</code></td><td>Structured plan in a <code class="inline">content</code> jsonb column</td></tr>
+  <tr><td><code class="inline">documents</code></td><td>Reserved for a future RAG knowledge base</td></tr>
+</table>
+
+<p class="code-label">supabase/migrations — RLS pattern applied to every table</p>
+<pre>ALTER TABLE progress_reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "select_own_progress" ON progress_reports FOR SELECT
+  TO authenticated USING (auth.uid() = user_id);
+
+CREATE POLICY "insert_own_progress" ON progress_reports FOR INSERT
+  TO authenticated WITH CHECK (auth.uid() = user_id);</pre>
+
+<p>
+<code class="inline">roadmaps.content</code> is a single jsonb blob rather than a normalized
+weekly-plan table. That was a deliberate simplification: a roadmap is generated whole
+(by the model) and read whole (by the UI), so there was nothing to gain from splitting it
+into rows — and it means marking a week complete is a single <code class="inline">UPDATE</code>
+that merges one field, not a join.
+</p>
+</section>
+
+<!-- 3 ================================================================ -->
+<section>
+<h1 class="sec"><span class="num">03</span> Authenticating Every Request</h1>
+<div class="sec-rule"></div>
+
+<p>
+The function is deployed with <code class="inline">--no-verify-jwt</code>, which sounds like
+it disables auth — it doesn't. Supabase's new-format publishable API keys
+(<code class="inline">sb_publishable_…</code>) aren't JWTs, so the platform's built-in
+gateway-level JWT check rejects every request outright if left on, including legitimate ones.
+Turning it off just moves the auth check <i>into</i> the function, where it's done properly
+against the actual logged-in user rather than a static key:
+</p>
+
+<p class="code-label">supabase/functions/ai-agent/index.ts</p>
+<pre>const authHeader = req.headers.get("Authorization") ?? "";
+const token = authHeader.replace(/^Bearer\s+/i, "");
+
+if (!token) {
+  return new Response(
+    JSON.stringify({ error: "Missing Authorization header" }),
+    { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+if (authError || !user) {
+  return new Response(
+    JSON.stringify({ error: "Unauthorized" }),
+    { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}</pre>
+
+<p>
+The client sends the signed-in user's real session token, not the anon key, as the
+bearer credential — so <code class="inline">getUser(token)</code> is checking an actual
+person, not just "some request with the app's public key attached":
+</p>
+
+<p class="code-label">src/components/workspace/ChatInterface.tsx</p>
+<pre>const response = await fetch(
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-agent`,
+  {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session?.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ message: text, agent_type: currentAgentType, history }),
+  }
+)</pre>
+
+<div class="callout">
+  <span class="label">Verified</span>
+  Calling the deployed function with no Authorization header, or with a garbage token,
+  returns <code class="inline">401</code> in both cases; calling it with a real user's
+  session token returns <code class="inline">200</code>. Confirmed against the live
+  endpoint with throwaway test accounts before and after this change shipped.
+</div>
+</section>
+
+<!-- 4 ================================================================ -->
+<section>
+<h1 class="sec"><span class="num">04</span> Intent Detection</h1>
+<div class="sec-rule"></div>
+
+<p>
+When the client doesn't pin a specific agent (or the user is on the "Auto" tab), the function
+classifies the message itself with an ordered stack of regexes. Order matters here — a message
+mentioning both "bug" and "algorithm" should route to Debug, not DSA, so the more specific/urgent
+categories are checked first and the catch-alls last:
+</p>
+
+<p class="code-label">supabase/functions/ai-agent/index.ts</p>
+<pre>function detectIntent(message: string): AgentType {
+  const m = message.toLowerCase();
+
+  if (/\b(bug|error|fix|crash|exception|undefined|null|syntax|runtime|compile|
+traceback|stacktrace|not working|broken|issue|problem with my code)\b/.test(m))
+    return "debug";
+
+  if (/\b(review|refactor|optimize|clean|readability|best practice|code quality|
+smell|improve my (code|solution|function))\b/.test(m))
+    return "review";
+
+  if (/\b(interview|mock|hr question|behavioral|system design|oop interview|
+dbms interview|os interview|hire|placement)\b/.test(m))
+    return "interview";
+
+  if (/\b(roadmap|learning path|study plan|curriculum|how to learn|where to start|
+beginner to|internship prep|job ready|career path)\b/.test(m))
+    return "roadmap";
+
+  if (/\b(progress|weak|topic analysis|how am i doing|performance|score|report|
+dashboard|analytics)\b/.test(m))
+    return "progress";
+
+  if (/\b(leetcode|problem|solution|algorithm|solve|two sum|binary search|
+linked list|tree|graph|dp|dynamic programming|brute force|optimal|complexity|
+big o|time complexity|space complexity)\b/.test(m))
+    return "dsa";
+
+  if (/\b(explain|teach|what is|how does|concept|understand|learn|example|notes|
+definition|difference between|vs\b)\b/.test(m))
+    return "learning";
+
+  return "general";
+}</pre>
+
+<p>
+This only ever runs when the incoming <code class="inline">agent_type</code> is
+<code class="inline">"general"</code> or missing — if the user has manually pinned an
+agent tab, that choice is respected as-is and the classifier never gets a vote.
+</p>
+</section>
+
+<!-- 5 ================================================================ -->
+<section>
+<h1 class="sec"><span class="num">05</span> Per-Agent System Prompts</h1>
+<div class="sec-rule"></div>
+
+<p>
+Every agent shares one base instruction (always format with markdown, never hallucinate),
+then layers on a structural template that forces the model's response into a specific shape —
+this is what makes the DSA agent always walk brute-force → optimized → optimal instead of
+just answering however it feels like that turn:
+</p>
+
+<p class="code-label">supabase/functions/ai-agent/index.ts — shared base + one specialist</p>
+<pre>const base = `You are CodeMentor AI, a world-class AI coding mentor. Always format
+responses with clear structure using markdown: headings (**Title**), bullet points
+(- item), numbered lists, and fenced code blocks (\`\`\`language...\`\`\`). Keep
+explanations precise and practical. Never hallucinate — if unsure, say so.`;
+
+dsa: `${base}
+You are the DSA Agent. For every problem, follow this exact structure:
+**Problem Understanding**
+- Restate the problem clearly
+**Brute Force Approach**
+- Explain the naive solution with code
+- Time/Space: O(?) / O(?)
+**Optimized Approach**
+- Explain the better solution with code
+**Optimal Approach**
+- Best possible solution with full code
+- Dry run with example input
+**Complexity Analysis**
+- Time Complexity: O(?)
+- Space Complexity: O(?)`,</pre>
+
+<table>
+  <tr><th>Agent</th><th>Forces the response into</th></tr>
+  <tr><td>Learning</td><td>Overview → key points → code example → pitfalls → practice problems</td></tr>
+  <tr><td>DSA</td><td>Brute force → optimized → optimal, each with complexity</td></tr>
+  <tr><td>Review</td><td>Strengths → issues → optimizations → rewritten code → score /10</td></tr>
+  <tr><td>Debug</td><td>Error identified → root cause → fix → corrected code → prevention</td></tr>
+  <tr><td>Interview</td><td>One question at a time, each answer scored /10 with a model answer</td></tr>
+  <tr><td>Roadmap</td><td>Current level → target → missing skills → weekly plan → resources</td></tr>
+  <tr><td>Progress</td><td>Summary → strong topics → weak areas → focus → weekly goal</td></tr>
+  <tr><td>General</td><td>Open-ended; detects what's needed and behaves like the right specialist</td></tr>
+</table>
+
+<p>
+All eight prompts (and the two structured-action prompts in sections 8 and 9) are plain
+template strings, selected with one lookup — there's no prompt-management system, because
+eight hand-written templates in one file is the simplest thing that could possibly work,
+and simplicity was worth more here than flexibility that wasn't needed yet.
+</p>
+</section>
+
+<!-- 6 ================================================================ -->
+<section>
+<h1 class="sec"><span class="num">06</span> Calling the Model</h1>
+<div class="sec-rule"></div>
+
+<p>
+The function talks to Groq's OpenAI-compatible chat-completions endpoint. This is the one
+piece that was swapped mid-project — it originally called Gemini directly; Groq's free tier
+(1,000–14,000+ requests/day depending on model, versus Gemini's 20/day cap) made it the
+better fit for a hobby-tier deployment, and because the endpoint is OpenAI-shaped, the swap
+was a reshape of one function, not a rewrite of the app:
+</p>
+
+<p class="code-label">supabase/functions/ai-agent/index.ts</p>
+<pre>const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODEL = "openai/gpt-oss-120b";
+
+async function callGroq(
+  systemPrompt: string,
+  history: Array&lt;{ role: string; content: string }&gt;,
+  userMessage: string
+): Promise&lt;string&gt; {
+  if (!GROQ_API_KEY) {
+    return "**API Key Missing**\n\nThe `GROQ_API_KEY` secret is not configured...";
+  }
+
+  const messages = [
+    { role: "system", content: systemPrompt },
+    ...history.map((h) => ({ role: h.role, content: h.content })),
+    { role: "user", content: userMessage },
+  ];
+
+  const res = await fetch(GROQ_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({ model: GROQ_MODEL, messages, temperature: 0.7, max_tokens: 4096 }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Groq API error ${res.status}: ${errText.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text) throw new Error("Empty response from Groq API");
+  return text;
+}</pre>
+
+<p>
+Gemini's API shape needed a separate <code class="inline">systemInstruction</code> field and
+mapped the assistant role to <code class="inline">"model"</code>; Groq/OpenAI's shape is a
+flat <code class="inline">messages[]</code> array with <code class="inline">system</code> /
+<code class="inline">user</code> / <code class="inline">assistant</code> roles directly —
+that's the entire migration surface. Every system prompt, every piece of routing logic,
+and the whole rest of the app didn't need to change.
+</p>
+</section>
+
+<!-- 7 ================================================================ -->
+<section>
+<h1 class="sec"><span class="num">07</span> DSA Topic Detection</h1>
+<div class="sec-rule"></div>
+
+<p>
+Whenever the resolved agent is <code class="inline">"dsa"</code>, the function also tries
+to tag which topic the exchange was about, so the client can nudge that topic's progress
+score. Ten fixed topics, one regex each, checked in a fixed priority order so a generic
+term like "array" doesn't swallow more specific ones like "dynamic programming":
+</p>
+
+<p class="code-label">supabase/functions/ai-agent/index.ts</p>
+<pre>const TOPIC_PATTERNS: Array&lt;{ topic: string; pattern: RegExp }&gt; = [
+  { topic: "Dynamic Programming", pattern: /\b(dynamic programming|\bdp\b|memoiz|
+tabulation|knapsack|subsequence|subset sum)\b/ },
+  { topic: "Binary Search", pattern: /\b(binary search|log n search|search.*sorted array)\b/ },
+  { topic: "Linked Lists", pattern: /\b(linked list|listnode|singly linked|doubly linked|
+\.next\b)\b/ },
+  { topic: "Graphs", pattern: /\b(graph|adjacency|dijkstra|topological sort|
+connected component|bipartite|union find)\b/ },
+  { topic: "Trees", pattern: /\b(binary tree|\btree\b|treenode|\bbst\b|inorder|
+preorder|postorder|leaf node)\b/ },
+  { topic: "Hashing", pattern: /\b(hash ?map|hash ?set|hashing|hash table|
+frequency map|dictionary lookup)\b/ },
+  { topic: "Recursion", pattern: /\b(recursion|recursive|backtrack)\b/ },
+  { topic: "Sorting", pattern: /\b(sort|quicksort|mergesort|bubble sort|insertion sort)\b/ },
+  { topic: "Strings", pattern: /\b(substring|anagram|palindrome|string manipulation)\b/ },
+  { topic: "Arrays", pattern: /\b(array|subarray|matrix|in-place|two pointer|
+sliding window)\b/ },
+];
+
+function detectTopic(message: string, content: string): string | null {
+  // Prefer the user's stated intent — DSA explanations often reference other
+  // techniques in passing (e.g. an Arrays problem solved via a "dynamic
+  // programming approach" like Kadane's algorithm), which makes scanning the
+  // full response an unreliable signal on its own.
+  return matchTopic(message.toLowerCase()) ?? matchTopic(content.toLowerCase());
+}</pre>
+
+<div class="callout">
+  <span class="label">Why the message is checked first, not the response</span>
+  The first version of this scanned the model's <i>full generated answer</i> for topic
+  keywords. Testing it against "give me an array question" returned <code class="inline">
+  Dynamic Programming</code> — because the model solved it with Kadane's algorithm and
+  explained its optimal solution as "a dynamic programming approach," which is a
+  legitimately correct thing to say about that problem. Scanning the model's own
+  explanation for topic hints turned out to be unreliable exactly because a good answer
+  cross-references adjacent techniques. The fix was to check the user's stated intent
+  first and only fall back to scanning the response when the message itself gives no
+  signal at all (e.g. a generic "give me a hard problem").
+</div>
+</section>
+
+<!-- 8 ================================================================ -->
+<section>
+<h1 class="sec"><span class="num">08</span> Structured Action: Interview Grading</h1>
+<div class="sec-rule"></div>
+
+<p>
+"End Interview" doesn't call a different model or a different endpoint — it sends the
+entire transcript back through <code class="inline">callGroq</code> with a grading-specific
+system prompt that demands JSON instead of markdown, then parses that JSON on the server
+before it ever reaches the client:
+</p>
+
+<p class="code-label">supabase/functions/ai-agent/index.ts</p>
+<pre>const INTERVIEW_GRADING_PROMPT = `You are an interview grading assistant. You will
+receive the full transcript of a mock technical interview between an AI interviewer
+and a candidate. Analyze the ENTIRE conversation and respond with ONLY a JSON object
+— no markdown, no code fences, no explanation outside the JSON — in exactly this shape:
+{
+  "interview_type": "&lt;one of: DSA, System Design, Behavioral, OOP, DBMS, OS, Mixed&gt;",
+  "score": &lt;integer 0-100&gt;,
+  "feedback": "&lt;2-4 sentence summary of strengths and weaknesses&gt;",
+  "topics_covered": ["&lt;topic1&gt;", "&lt;topic2&gt;"]
+}
+Base the score on correctness, clarity of communication, problem-solving approach, and
+completeness of answers. If the candidate barely answered anything substantively, score
+low (0-20) and say so in the feedback.`;
+
+async function gradeInterview(history: Array&lt;{ role: string; content: string }&gt;) {
+  const transcript = history.map((h) => `${h.role.toUpperCase()}: ${h.content}`).join("\n\n");
+  const raw = await callGroq(INTERVIEW_GRADING_PROMPT, [], transcript);
+  const parsed = extractJSON(raw) as Partial&lt;InterviewGrade&gt;;
+
+  return {
+    interview_type: typeof parsed.interview_type === "string" ? parsed.interview_type : "Mixed",
+    score: Math.max(0, Math.min(100, Math.round(Number(parsed.score) || 0))),
+    feedback: typeof parsed.feedback === "string" ? parsed.feedback : "No feedback generated.",
+    topics_covered: Array.isArray(parsed.topics_covered) ? parsed.topics_covered.map(String) : [],
+  };
+}</pre>
+
+<p>
+Every field is defensively coerced and clamped on the way out — <code class="inline">score</code>
+is forced into <code class="inline">0–100</code> (matching the database's own
+<code class="inline">CHECK</code> constraint), and a missing or malformed field falls back to a
+safe default rather than propagating <code class="inline">undefined</code> into a
+<code class="inline">NOT NULL</code> column insert.
+</p>
+
+<p class="code-label">Parsing model output that's <i>supposed</i> to be pure JSON but sometimes isn't</p>
+<pre>function extractJSON(text: string): unknown {
+  const trimmed = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const match = trimmed.match(/\{[\s\S]*\}/);
+    if (match) return JSON.parse(match[0]);
+    throw new Error("Could not parse structured JSON from model response");
+  }
+}</pre>
+
+<p>
+The client then computes <code class="inline">duration_minutes</code> from the chat's first
+message timestamp to the moment "End Interview" is clicked, inserts the graded result into
+<code class="inline">interview_results</code>, and posts a formatted summary back into the
+chat so the transcript reads as a closed conversation rather than one that just stops.
+</p>
+</section>
+
+<!-- 9 ================================================================ -->
+<section>
+<h1 class="sec"><span class="num">09</span> Structured Action: Roadmap Generation</h1>
+<div class="sec-rule"></div>
+
+<p>
+"Save as Roadmap" follows the identical pattern — a dedicated prompt, strict JSON out,
+parsed server-side — but the target shape is richer, because it has to match the app's
+existing <code class="inline">RoadmapContent</code> type exactly so the roadmap page can
+render it with no translation layer:
+</p>
+
+<p class="code-label">supabase/functions/ai-agent/index.ts</p>
+<pre>const ROADMAP_GENERATION_PROMPT = `You are a roadmap-generation assistant. You will
+receive the transcript of a conversation between an AI roadmap agent and a user
+discussing their learning goals. Extract or infer the details and respond with ONLY
+a JSON object — no markdown, no code fences, no explanation outside the JSON — in
+exactly this shape:
+{
+  "title": "&lt;short roadmap title&gt;",
+  "goal": "&lt;the user's stated goal in one sentence&gt;",
+  "current_level": "&lt;assessed current skill level&gt;",
+  "target_level": "&lt;the target level to reach&gt;",
+  "duration_weeks": &lt;integer, total weeks&gt;,
+  "missing_skills": ["&lt;skill1&gt;", "&lt;skill2&gt;"],
+  "weekly_plan": [
+    { "week": 1, "title": "&lt;week title&gt;", "topics": ["&lt;topic1&gt;"],
+      "goals": ["&lt;goal1&gt;"], "problems": &lt;integer&gt; }
+  ],
+  "resources": [
+    { "title": "&lt;resource title&gt;", "type": "&lt;video|article|practice|book&gt;",
+      "url": "&lt;url or omit&gt;", "description": "&lt;one line&gt;" }
+  ]
+}
+Be specific with topics and weeks — cover the full duration_weeks with one weekly_plan
+entry per week.`;</pre>
+
+<p>
+On the client, each returned <code class="inline">weekly_plan</code> entry gets a
+<code class="inline">completed: false</code> flag stapled on before the insert — that flag
+doesn't exist in the model's output at all, it's added purely so the Roadmap page has
+something to toggle:
+</p>
+
+<pre>await supabase.from('roadmaps').insert({
+  title: r.title,
+  goal: r.goal,
+  content: {
+    current_level: r.current_level,
+    target_level: r.target_level,
+    duration_weeks: r.duration_weeks,
+    missing_skills: r.missing_skills,
+    weekly_plan: r.weekly_plan.map(w => ({ ...w, completed: false })),
+    resources: r.resources,
+  },
+})</pre>
+
+<p>
+Checking a week off later is a partial-merge update — read the roadmap's current
+<code class="inline">content</code>, flip one week's <code class="inline">completed</code>
+boolean, write the whole object back:
+</p>
+
+<pre>const toggleWeek = async (roadmap: Roadmap, weekIndex: number) => {
+  const updatedWeeklyPlan = roadmap.content.weekly_plan.map((w, i) =>
+    i === weekIndex ? { ...w, completed: !w.completed } : w
+  )
+  const updatedContent = { ...roadmap.content, weekly_plan: updatedWeeklyPlan }
+  await supabase.from('roadmaps').update({ content: updatedContent }).eq('id', roadmap.id)
+}</pre>
+</section>
+
+<!-- 10 =============================================================== -->
+<section>
+<h1 class="sec"><span class="num">10</span> Client Integration</h1>
+<div class="sec-rule"></div>
+
+<p>
+On the frontend, <code class="inline">sendMessage</code> in <code class="inline">
+ChatInterface.tsx</code> is the single function every chat turn flows through: create the
+chat row if this is the first message, save the user's message, call the edge function,
+save the assistant's reply, then — only for DSA turns that returned a topic — bump progress
+and tell the parent component to refresh the insights panel:
+</p>
+
+<p class="code-label">src/components/workspace/ChatInterface.tsx</p>
+<pre>const result = await response.json().catch(() => ({}))
+
+if (!response.ok || result.error) {
+  throw new Error(result.error || `Agent error: ${response.status}`)
+}
+
+const detectedAgent = (result.agent_type as AgentType) || currentAgentType
+
+const { data: aiMsg } = await supabase
+  .from('messages')
+  .insert({
+    chat_id: activeChatId,
+    role: 'assistant',
+    content: result.content,
+    agent_type: detectedAgent,
+    metadata: result.metadata ?? {},
+  })
+  .select()
+  .single()
+
+if (aiMsg) {
+  setMessages(prev => [...prev, aiMsg])
+  setAgentType(detectedAgent)
+}
+
+if (user && result.metadata?.topic) {
+  await bumpTopicProgress(user.id, result.metadata.topic)
+  onProgressUpdate?.()
+}</pre>
+
+<p>
+<code class="inline">bumpTopicProgress</code> itself is intentionally silent on failure —
+progress tracking is a nice-to-have layered on top of the chat, not something that should
+ever be able to break the actual conversation if a database call hiccups:
+</p>
+
+<pre>async function bumpTopicProgress(userId: string, topic: string) {
+  try {
+    const { data: existing } = await supabase
+      .from('progress_reports')
+      .select('id, score, problems_solved')
+      .eq('user_id', userId)
+      .eq('topic', topic)
+      .maybeSingle()
+
+    if (existing) {
+      await supabase
+        .from('progress_reports')
+        .update({
+          score: Math.min(100, existing.score + 5),
+          problems_solved: existing.problems_solved + 1,
+        })
+        .eq('id', existing.id)
+    }
+  } catch {
+    // best-effort progress tracking; a failure here shouldn't break the chat
+  }
+}</pre>
+
+<p>
+<code class="inline">onProgressUpdate</code> is a callback threaded down from
+<code class="inline">Workspace.tsx</code>, which holds a <code class="inline">progressVersion</code>
+counter purely so the always-mounted AI Insights panel knows when to refetch — without it, the
+panel had no way to learn that a background update had happened and would keep showing stale
+numbers until a full page reload.
+</p>
+</section>
+
+<!-- 11 =============================================================== -->
+<section>
+<h1 class="sec"><span class="num">11</span> Security Notes</h1>
+<div class="sec-rule"></div>
+
+<ul>
+  <li><b>Every request is auth-checked in the function itself</b> (Section 3), not just at
+  the gateway — because the gateway's JWT check can't be used at all with the newer
+  publishable-key format.</li>
+  <li><b>Row-level security is the real backstop.</b> Even if a request somehow reached the
+  database with the wrong user's ID, Postgres itself rejects the read/write — this was
+  verified directly by attempting a cross-user read with no auth token and confirming it
+  returned an empty result set, not an error and not someone else's data.</li>
+  <li><b>The Groq API key never reaches the client.</b> It's a Supabase secret, read only
+  inside the edge function's Deno runtime; the browser only ever sees the response text.</li>
+  <li><b>Structured actions reuse the same auth gate.</b> <code class="inline">action:
+  "end_interview"</code> and <code class="inline">action: "generate_roadmap"</code> are
+  checked inside the same handler as regular chat, after the same
+  <code class="inline">getUser(token)</code> call — there's no separate, easier-to-forget
+  auth path for them.</li>
+  <li><b>Defensive JSON parsing assumes the model will occasionally misbehave.</b>
+  <code class="inline">extractJSON</code> strips markdown fences and falls back to
+  regex-extracting the first <code class="inline">{...}</code> block before giving up,
+  because "the model always returns exactly what the prompt asked for" is not a safe
+  assumption to build error handling around.</li>
+</ul>
+</section>
+
+</body>
+</html>
