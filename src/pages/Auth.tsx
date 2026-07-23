@@ -13,26 +13,33 @@ export function Auth() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
-  const { signIn, signUp } = useAuth()
+  const { signIn, signUp, signOut } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setSuccess(null)
     setLoading(true)
 
     try {
       if (mode === 'login') {
         const { error } = await signIn(email, password)
         if (error) throw error
+        navigate('/workspace')
       } else {
         if (!fullName.trim()) throw new Error('Full name is required')
         if (password.length < 6) throw new Error('Password must be at least 6 characters')
         const { error } = await signUp(email, password, fullName)
         if (error) throw error
+
+        await signOut()
+        setMode('login')
+        setPassword('')
+        setSuccess('Account created! Please sign in.')
       }
-      navigate('/workspace')
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Something went wrong'
       setError(
@@ -88,7 +95,7 @@ export function Auth() {
             {(['login', 'register'] as const).map((m) => (
               <button
                 key={m}
-                onClick={() => { setMode(m); setError(null) }}
+                onClick={() => { setMode(m); setError(null); setSuccess(null) }}
                 className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
                   mode === m
                     ? 'bg-brand-500 text-white shadow-sm'
@@ -161,6 +168,16 @@ export function Auth() {
               </div>
             </div>
 
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs"
+              >
+                {success}
+              </motion.div>
+            )}
+
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -5 }}
@@ -194,7 +211,7 @@ export function Auth() {
               {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
             </span>
             <button
-              onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null) }}
+              onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null); setSuccess(null) }}
               className="text-brand-400 hover:text-brand-300 text-xs font-medium transition-colors"
             >
               {mode === 'login' ? 'Create one' : 'Sign in'}
